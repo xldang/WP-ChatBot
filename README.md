@@ -1,4 +1,4 @@
-# DeepSeek ChatGPT WordPress 插件
+# WP-ChatBot WordPress Plugin
 
 一个功能强大的WordPress插件，在您的网站中集成DeepSeek AI问答功能，提供ChatGPT风格的对话界面。
 
@@ -34,13 +34,13 @@
 ## 🛠️ 安装方法
 
 ### 1. 上传插件
-将插件文件上传到WordPress的 `/wp-content/plugins/deepseek-chatgpt/` 目录
+将插件文件上传到WordPress的 `/wp-content/plugins/wp-chatbot/` 目录
 
 ### 2. 激活插件
-在WordPress后台 → 插件 → 已安装插件中激活"DeepSeek ChatGPT Q&A"
+在WordPress后台 → 插件 → 已安装插件中激活"WP-ChatBot"
 
 ### 3. 配置设置
-1. 进入 **设置 → DeepSeek设置**
+1. 进入 **设置 → WP-ChatBot 设置**
 2. 输入DeepSeek API URL（通常为 https://api.deepseek.com）
 3. 输入您的DeepSeek API密钥
 4. 配置人称设置和其他选项
@@ -89,13 +89,13 @@
 
 插件会自动记录详细的调试信息到日志文件中：
 
-**日志文件位置**: `/wp-content/plugins/deepseek-chatgpt/debug.log`
+**日志文件位置**: `/wp-content/plugins/wp-chatbot/debug.log`
 
-**在线查看日志**: 访问 `https://your-site.com/wp-content/plugins/deepseek-chatgpt/log-viewer.php`
+**在线查看日志**: 访问 `https://your-site.com/wp-content/plugins/wp-chatbot/log-viewer.php`
 
 **手动查看日志**:
 ```bash
-tail -f /path/to/wordpress/wp-content/plugins/deepseek-chatgpt/debug.log
+tail -f /path/to/wordpress/wp-content/plugins/wp-chatbot/debug.log
 ```
 
 ### 常见问题
@@ -145,4 +145,4 @@ A: 使用插件提供的日志查看器或直接查看 `debug.log` 文件
 
 ---
 
-**注意**: 使用本插件需要有效的DeepSeek API密钥，请确保您有足够的API调用额度。 
+**注意**: 使用本插件需要有效的DeepSeek API密钥，请确保您有足够的API调用额度。
