@@ -72,7 +72,11 @@ function wp_chatbot_log_stats($event_type, $event_data = array()) {
     }
 
     $current_user_id = get_current_user_id();
-    $session_id = session_id() ?: wp_generate_uuid4();
+    // Generate session ID if not exists (compatible with older WP versions)
+    if (!session_id()) {
+        session_start();
+    }
+    $session_id = session_id() ?: uniqid('wp_chatbot_', true);
 
     $data = array(
         'event_type' => $event_type,
