@@ -400,6 +400,9 @@ add_shortcode('deepseek_qa', 'deepseek_qa_shortcode');
 add_action('wp_ajax_deepseek_send_query', 'deepseek_handle_query');
 add_action('wp_ajax_nopriv_deepseek_send_query', 'deepseek_handle_query');
 
+// 加载统计模块
+require_once plugin_dir_path(__FILE__) . 'statistics.php';
+
 // 添加测试AJAX端点
 add_action('wp_ajax_deepseek_test', 'deepseek_test_connection');
 add_action('wp_ajax_nopriv_deepseek_test', 'deepseek_test_connection');
@@ -459,9 +462,19 @@ function deepseek_test_connection() {
 function deepseek_handle_query() {
     // 添加调试日志
     deepseek_log('DeepSeek: AJAX request received');
-    
+
     $user_input = isset($_POST['prompt']) ? sanitize_text_field($_POST['prompt']) : '';
     deepseek_log('DeepSeek: User input: ' . $user_input);
+
+    // 统计：记录对话开始
+    wp_chatbot_log_stats('conversation_start', array(
+        'user_input' => $user_input
+    ));
+
+    // 统计：记录用户消息
+    wp_chatbot_log_stats('user_message', array(
+        'content' => $user_input
+    ));
     
     // 获取设置项
     $api_url = get_option('deepseek_api_url', 'https://api.deepseek.com');
@@ -517,6 +530,9 @@ function deepseek_handle_query() {
     deepseek_log('DeepSeek: Sending request to API');
     deepseek_log('DeepSeek: Request body: ' . $body);
     
+    // 记录API调用开始时间
+    $api_start_time = microtime(true);
+
     $response = wp_remote_post($api_url, array(
         'headers' => array(
             'Content-Type' => 'application/json',
@@ -525,8 +541,20 @@ function deepseek_handle_query() {
         'body' => $body,
         'timeout' => 30,
     ));
-    
+
+    // 计算响应时间
+    $api_end_time = microtime(true);
+    $response_time = round(($api_end_time - $api_start_time) * 1000, 2); // 毫秒
+
     deepseek_log('DeepSeek: Response received: ' . print_r($response, true));
+
+    // 统计：记录API调用
+    wp_chatbot_log_stats('api_call', array(
+        'success' => false, // 先假设失败，成功时更新
+        'response_time' => $response_time,
+        'model' => $model
+    ));
+
     if (is_wp_error($response)) {
         $error_message = 'DeepSeek API 请求失败：' . $response->get_error_message();
         if (strpos($response->get_error_message(), 'timeout') !== false) {
@@ -535,9 +563,17 @@ function deepseek_handle_query() {
             $error_message = '网络连接错误，请稍后重试。';
         }
         deepseek_log('DeepSeek: Error - ' . $error_message);
+
+        // 统计：记录错误
+        wp_chatbot_log_stats('error', array(
+            'type' => 'network_error',
+            'code' => 'wp_error',
+            'message' => $response->get_error_message()
+        ));
+
         wp_send_json_error(['answer' => $error_message]);
     }
-    
+
     $response_code = wp_remote_retrieve_response_code($response);
     if ($response_code !== 200) {
         $error_message = 'API 请求失败，状态码：' . $response_code;
@@ -549,6 +585,14 @@ function deepseek_handle_query() {
             $error_message = '服务器错误，请稍后重试。';
         }
         deepseek_log('DeepSeek: Error - HTTP ' . $response_code . ' - ' . $error_message);
+
+        // 统计：记录HTTP错误
+        wp_chatbot_log_stats('error', array(
+            'type' => 'http_error',
+            'code' => $response_code,
+            'message' => $error_message
+        ));
+
         wp_send_json_error(['answer' => $error_message]);
     }
     
@@ -557,10 +601,37 @@ function deepseek_handle_query() {
     
     if (isset($data['choices'][0]['message']['content'])) {
         $answer = $data['choices'][0]['message']['content'];
+
+        // 统计：更新API调用为成功，并记录AI响应
+        wp_chatbot_log_stats('api_call', array(
+            'success' => true,
+            'response_time' => $response_time,
+            'model' => $model
+        ));
+
+        wp_chatbot_log_stats('ai_response', array(
+            'content' => $answer,
+            'response_time' => $response_time
+        ));
+
         wp_send_json_success(['answer' => nl2br(esc_html($answer))]);
     } elseif (isset($data['error']['message'])) {
+        // 统计：记录API错误
+        wp_chatbot_log_stats('error', array(
+            'type' => 'api_error',
+            'code' => 'api_response_error',
+            'message' => $data['error']['message']
+        ));
+
         wp_send_json_error(['answer' => 'DeepSeek API 错误：' . esc_html($data['error']['message'])]);
     } else {
+        // 统计：记录无效响应格式错误
+        wp_chatbot_log_stats('error', array(
+            'type' => 'invalid_response',
+            'code' => 'invalid_format',
+            'message' => 'Invalid API response format'
+        ));
+
         wp_send_json_error(['answer' => 'DeepSeek API 返回了无效的响应格式。']);
     }
-} 
+}
